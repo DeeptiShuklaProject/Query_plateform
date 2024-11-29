@@ -1,16 +1,210 @@
-<form method="POST">
-    {% csrf_token %}
-    <label for="problem_statement">Problem Statement:</label>
-    <textarea name="problem_statement" required></textarea>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Query Platform</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    <label for="sql_query">SQL Query:</label>
-    <textarea name="sql_query" required></textarea>
+        h1, h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2rem;
+        }
 
-    <label for="pandas_query">Pandas Query (Optional):</label>
-    <textarea name="pandas_query"></textarea>
+        /* Form & Search Section */
+        .search-section, form {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
 
-    <label for="pyspark_query">PySpark Query (Optional):</label>
-    <textarea name="pyspark_query"></textarea>
+        .search-section {
+            margin-top: 40px;
+        }
 
-    <button type="submit">Execute</button>
-</form>
+        /* Label Styles */
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 15px 0 5px;
+            color: #555;
+        }
+
+        /* Input & Textarea Styles */
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+            box-sizing: border-box;
+        }
+
+        /* Focus Effects */
+        textarea:focus, input[type="text"]:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+
+        /* Button Styles */
+        button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Search Results Section */
+        .search-results {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: #fff;
+            margin-top: 10px;
+            max-height: 250px;
+            overflow-y: auto;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            padding: 0;
+        }
+
+        .search-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+            transition: background-color 0.3s;
+        }
+
+        .search-item:hover {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 10px;
+            color: #777;
+            font-style: italic;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            form, .search-section {
+                width: 95%;
+                padding: 20px;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .search-results {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Query Platform</h1>
+
+    <!-- Auto-Search Section -->
+    <div class="search-section">
+        <h2>Search Existing Queries</h2>
+        <input type="text" id="search-box" placeholder="Search problem statements..." autocomplete="off">
+        <button id="search-button">Search</button>
+        <div id="search-results" class="search-results"></div>
+    </div>
+
+    <!-- Form for Query Submission -->
+    <form method="POST">
+        {% csrf_token %}
+        <label for="problem_statement">Problem Statement:</label>
+        <textarea name="problem_statement" rows="3" required></textarea>
+
+        <label for="sql_query">SQL Query:</label>
+        <textarea name="sql_query" rows="5" required></textarea>
+
+        <label for="pandas_query">Pandas Query (Optional):</label>
+        <textarea name="pandas_query" rows="4"></textarea>
+
+        <label for="pyspark_query">PySpark Query (Optional):</label>
+        <textarea name="pyspark_query" rows="4"></textarea>
+
+        <button type="submit">Execute</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            // Trigger search when the user clicks the "Search" button
+            $("#search-button").on("click", function() {
+                let query = $("#search-box").val(); // Get the user's input from the search box
+                if (query.length > 0) {
+                    // Make an AJAX request to the auto_search view
+                    $.ajax({
+                        url: "/queries/auto_search/", // Dynamically generate the correct URL
+                        data: { term: query },
+                        success: function(data) {
+                            let resultsDiv = $("#search-results");
+                            resultsDiv.empty(); // Clear previous results
+                            if (data.length > 0) {
+                                data.forEach(item => {
+                                    resultsDiv.append(
+                                        `<div class="search-item" data-id="${item.id}">
+                                            ${item.problem_statement}
+                                         </div>`
+                                    );
+                                });
+                            } else {
+                                resultsDiv.append('<div class="no-results">No results found</div>');
+                            }
+                        },
+                        error: function() {
+                            console.error("An error occurred while fetching search results.");
+                        }
+                    });
+                } else {
+                    $("#search-results").empty(); // Clear results if input is empty
+                }
+            });
+
+            // Handle result click
+            $(document).on("click", ".search-item", function() {
+                let selectedText = $(this).text();
+                $("#search-box").val(selectedText); // Populate the search box with the clicked result
+                $("#search-results").empty(); // Clear the results after selection
+            });
+        });
+    </script>
+</body>
+</html>

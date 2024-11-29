@@ -19,10 +19,11 @@ from django.contrib import admin
 from django.urls import path
 from django.urls import path, include
 from django.views.generic import RedirectView
+from queries import views
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('queries/', include('queries.urls')),
     path('', RedirectView.as_view(url='/queries/', permanent=False)),  # Redirect to /queries
-
+    path('auto_search/', views.auto_search, name='auto_search'),
 ]
